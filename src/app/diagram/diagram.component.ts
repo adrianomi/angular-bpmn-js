@@ -28,6 +28,8 @@ import { ImportDoneEvent, ImportXMLResult } from 'bpmn-js/lib/BaseViewer';
 import BpmnJS from 'bpmn-js/lib/Modeler';
 
 import { from, Observable, Subscription } from 'rxjs';
+import { is } from 'bpmn-js/lib/util/ModelUtil';
+import CustomContextPad from '../providers/context-pad-provider';
 
 @Component({
   selector: 'app-diagram',
@@ -38,16 +40,32 @@ export class DiagramComponent
   implements AfterContentInit, OnChanges, OnDestroy, OnInit
 {
   @ViewChild('ref', { static: true }) private el!: ElementRef;
-  
+
   @Input() public url?: string;
   @Output() private importDone: EventEmitter<ImportDoneEvent> =
     new EventEmitter();
-  private bpmnJS: BpmnJS = new BpmnJS();
+  private bpmnJS: BpmnJS = new BpmnJS({
+    additionalModules: [
+      {
+        __init__: ['contextPadProvider'],
+        contextPadProvider: ['type', CustomContextPad],
+      }
+    ],
+  });
 
   constructor(private http: HttpClient) {
     this.bpmnJS.on<ImportDoneEvent>('import.done', ({ error }) => {
       if (!error) {
         this.bpmnJS.get<Canvas>('canvas').zoom('fit-viewport');
+      }
+    });
+
+    this.bpmnJS.on('element.create', function (event: any) {
+      const { element } = event;
+
+      // Verifique se o elemento criado é do tipo desejado (por exemplo, uma tarefa)
+      if (is(element, 'bpmn:Task')) {
+          console.log('isktask')
       }
     });
   }
